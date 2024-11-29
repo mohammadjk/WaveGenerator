@@ -1,0 +1,12 @@
+The task:
+
+Write a function in c++ which creates an audio wave file with pure sinusoidal sound. 
+C++ or C code acceptable.
+Both platform-specific code (Windows, Linux, MacOS) or cross-platform code acceptable.
+
+Input: 	
+- sound frequency in Hertzs and a length of the file in seconds
+
+Output:
+- audio.wav file 24 bit, mono, 48Khz in current directory. OR
+- an exception with an explanation if there was an error anywhere.
