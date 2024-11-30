@@ -33,14 +33,6 @@ public:
         return static_cast<int32_t>(m_amplitude * std::sin(2.0 * k_PI  * m_frequency * sample_time));
     }
 
-    inline uint32_t get_wave_amplitude() const {return m_amplitude;}
-    inline uint32_t get_wave_frequency() const {return m_frequency;}
-    inline uint32_t get_sample_rate() const {return m_sample_rate;}
-
-    inline void set_wave_amplitude(uint32_t wave_amplitude) {m_amplitude = wave_amplitude;}
-    inline void set_wave_frequency(uint32_t wave_frequency) {m_frequency = wave_frequency;}
-    inline void set_sample_rate(uint32_t sample_rate) {m_sample_rate = sample_rate;}
-
 private:
     uint32_t m_amplitude;
     uint32_t m_frequency;
