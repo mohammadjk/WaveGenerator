@@ -25,12 +25,14 @@
 
 // Helper constants
 constexpr uint32_t  k_amplitude {300'000};   // The amplitude of the sine wave to generate 
-constexpr uint16_t  k_frequency {1'000};     // Frequency of the sine wave to generate (Unit: Hz)
+
+constexpr uint32_t  k_sample_rate {48'000};  // 48kHz sample rate
+constexpr uint16_t  k_bits_per_sample {24};  // 24 bits per sample
 
 /**
  * Generates the header for a Wave file. 
  */
-auto create_wave_header(uint32_t sample_rate, double file_length_sec, uint16_t bits_per_sample)
+auto create_wave_header(double file_length_sec)
 {
     wave::WaveHeader hdr{};
 
@@ -42,8 +44,8 @@ auto create_wave_header(uint32_t sample_rate, double file_length_sec, uint16_t b
     hdr.bloc_size = wave::k_header_bloc_size;
     hdr.audio_format = wave::k_audio_format_PCM;
     hdr.channel_count = wave::k_channel_count_mono;
-    hdr.sample_rate = sample_rate;
-    hdr.bits_per_sample = bits_per_sample;
+    hdr.sample_rate = k_sample_rate;
+    hdr.bits_per_sample = k_bits_per_sample;
     hdr.bytes_per_bloc = (hdr.channel_count * hdr.bits_per_sample / 8);
     hdr.bytes_per_sec = (hdr.sample_rate * hdr.bytes_per_bloc);
 
@@ -64,12 +66,12 @@ auto create_wave_header(uint32_t sample_rate, double file_length_sec, uint16_t b
 /**
  * Generates data for a Wave file.
  */
-auto create_wave_data(uint32_t sample_rate, double file_length_sec)
+auto create_wave_data(uint32_t wave_frequency, double file_length_sec)
 {    
     std::vector<uint8_t> samples;
 
-    wavegen::sine_wave_generator  audio_source(k_amplitude, k_frequency, sample_rate);
-    uint32_t total_sample_count = sample_rate * file_length_sec;
+    wavegen::sine_wave_generator  audio_source(k_amplitude, wave_frequency, k_sample_rate);
+    uint32_t total_sample_count = k_sample_rate * file_length_sec;
     for (uint32_t sample_index{}; sample_index < total_sample_count; ++sample_index) 
     {        
         auto sample = audio_source.get_sample(sample_index);
@@ -110,29 +112,28 @@ void write_to_file(const uint8_t* hdr, uint32_t hdr_size, const uint8_t* data, u
 }
 
 
-void CreateWaveFile(uint32_t sample_rate, double file_length_sec, uint16_t bits_per_sample, const std::string& file_path)
+void create_wave_file(uint32_t wave_frequency, double file_length_sec)
 {
     if (file_length_sec <= 0.0) {
         throw std::invalid_argument("File length should be greater than 0.");
     }
 
-    auto header  = create_wave_header(sample_rate, file_length_sec, bits_per_sample);
-    auto samples = create_wave_data(sample_rate, file_length_sec);
+    auto header  = create_wave_header(file_length_sec);
+    auto samples = create_wave_data(wave_frequency, file_length_sec);
 
+    std::string file_path {"audio.wav"};
     write_to_file(header.data(), header.size(), samples.data(), samples.size(), file_path);
 }
 
 int main()
 {
-    uint32_t sample_rate {48'000}; // 48kHz
-    double file_length_sec {5.73}; 
-    uint16_t bits_per_sample {24}; // 24bit
-    std::string file_path {"audio.wav"};
+    uint32_t wave_frequency {1'000}; // 48kHz
+    double file_length_sec {5.73};
 
     std::cout << "Generating a wave file...\n";
        
     try {        
-        CreateWaveFile(sample_rate, file_length_sec, bits_per_sample, file_path);
+        create_wave_file(wave_frequency, file_length_sec);
     } catch (const std::exception& e) {
         std::cout << "File generation failed. Error: \"" << e.what() << "\"\n";
     }
