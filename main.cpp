@@ -15,6 +15,7 @@
  * - an exception with an explanation if there was an error anywhere.
  */
 #include <array>
+#include <string>
 #include <vector>
 #include <cstring>
 #include <fstream>
@@ -24,7 +25,7 @@
 #include "SineWaveGen.h"
 
 // Helper constants
-constexpr uint32_t  k_amplitude {300'000};   // The amplitude of the sine wave to generate 
+constexpr uint32_t  k_amplitude {30'000'000};   // The amplitude of the sine wave to generate 
 
 constexpr uint32_t  k_sample_rate {48'000};  // 48kHz sample rate
 constexpr uint16_t  k_bits_per_sample {24};  // 24 bits per sample
@@ -51,7 +52,7 @@ auto create_wave_header(double file_length_sec)
 
     uint64_t data_size = static_cast<uint64_t>(file_length_sec * hdr.bytes_per_sec);
     if (data_size > UINT32_MAX) {
-        throw std::overflow_error("Data size exceeds the maximum limit.");
+        throw std::overflow_error("File generation failed. Data size exceeds the maximum limit.");
     }
 
     hdr.data_size = static_cast<uint32_t>(data_size);
@@ -92,16 +93,16 @@ void write_to_file(const uint8_t* hdr, uint32_t hdr_size, const uint8_t* data, u
     std::ofstream file(file_path, std::fstream::binary);
 
     if (!file.is_open()) {
-        throw std::ofstream::failure("Failed to open file " + file_path);
+        throw std::ofstream::failure("File generation failed. Failed to open file " + file_path);
     }
 
     try {
         if(file.write((const char*)hdr, hdr_size).fail()) {
-            throw std::ofstream::failure("Failed to write header data to file.");
+            throw std::ofstream::failure("File generation failed. Failed to write header data to file.");
         }
 
         if (file.write((const char*)data, data_size).fail()) {
-            throw std::ios_base::failure("Failed to write audio data to file.");
+            throw std::ofstream::failure("File generation failed. Failed to write audio data to file.");
         }
     } catch (...) {
         file.close(); // ensure file is closed on exception
@@ -115,7 +116,11 @@ void write_to_file(const uint8_t* hdr, uint32_t hdr_size, const uint8_t* data, u
 void create_wave_file(uint32_t wave_frequency, double file_length_sec)
 {
     if (file_length_sec <= 0.0) {
-        throw std::invalid_argument("File length should be greater than 0.");
+        throw std::invalid_argument("Invalid argument. File length should be greater than 0.");
+    }
+
+    if (wave_frequency > k_sample_rate/2) {
+        throw std::invalid_argument("Invalid argument. Wave frequency should be less than or equal to half of the sample rate.");
     }
 
     auto header  = create_wave_header(file_length_sec);
@@ -125,17 +130,35 @@ void create_wave_file(uint32_t wave_frequency, double file_length_sec)
     write_to_file(header.data(), header.size(), samples.data(), samples.size(), file_path);
 }
 
-int main()
+void parse_args(int argc, char* argv[], uint32_t& frequency, double& file_length)
 {
-    uint32_t wave_frequency {1'000}; // 48kHz
-    double file_length_sec {5.73};
+    if (argc < 3) {
+        throw std::invalid_argument("Invalid arguments. Usage: " + std::string(argv[0]) + " <wave_frequency> <file_length_sec>");
+    }
 
-    std::cout << "Generating a wave file...\n";
-       
-    try {        
-        create_wave_file(wave_frequency, file_length_sec);
+    try {
+        frequency = std::stoul(argv[1]);
+        file_length = std::stod(argv[2]);
     } catch (const std::exception& e) {
-        std::cout << "File generation failed. Error: \"" << e.what() << "\"\n";
+        throw std::invalid_argument("Invalid arguments. Enter valid numbers for wave frequency and file length.");
+    }
+}      
+
+int main(int argc, char* argv[])
+{
+    try {
+        uint32_t frequency{};
+        double file_length{};
+        parse_args(argc, argv, frequency, file_length);
+
+        std::cout << "Generating a wave file with wave frequency " << frequency 
+                  << "Hz and file length " << file_length << " seconds...\n";
+        
+        create_wave_file(frequency, file_length);
+
+    } catch (const std::exception& e) {
+        std::cerr << "Error: \"" << e.what() << "\"\n";
+        return -1;
     }
 
     std::cout << "Finished.\n";
